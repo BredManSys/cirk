@@ -1,0 +1,1293 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Под куполом времени — MVP-сайт Московского цирка на Цветном бульваре. Афиша, история, легенды и билеты.">
+  <title>Под куполом времени — Московский цирк</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            milk: '#FAF8F3',
+            accent: '#C62828',
+            gold: '#E9B949',
+            graphite: '#2D2D2D',
+          },
+          fontFamily: {
+            sans: ['Inter', 'Manrope', 'system-ui', 'sans-serif'],
+            display: ['Playfair Display', 'Georgia', 'serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* ── Base ── */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', 'Manrope', system-ui, sans-serif;
+      background-color: #FAF8F3;
+      color: #2D2D2D;
+    }
+
+    /* ── Scroll animations ── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .fade-up.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ── Sticky header ── */
+    #site-header {
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    #site-header.scrolled {
+      background-color: #FAF8F3;
+      box-shadow: 0 1px 12px rgba(45, 45, 45, 0.08);
+    }
+
+    /* ── Modal ── */
+    #demo-modal {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    #demo-modal.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    #demo-modal .modal-content {
+      transform: scale(0.95) translateY(10px);
+      transition: transform 0.3s ease;
+    }
+
+    #demo-modal.open .modal-content {
+      transform: scale(1) translateY(0);
+    }
+
+    /* ── Horizontal scroll (block 3 — mobile swipe) ── */
+    .horizontal-scroll {
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .horizontal-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* ── Schedule date cards ── */
+    .schedule-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .schedule-card.visible:hover {
+      transform: scale(1.02);
+    }
+
+    /* ── History scenes ── */
+    .history-scene-bg {
+      z-index: 0;
+    }
+
+    .history-scene::before {
+      z-index: 1;
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 25% 40%, rgba(233, 185, 73, 0.06) 0%, transparent 45%),
+        radial-gradient(circle at 75% 60%, rgba(198, 40, 40, 0.04) 0%, transparent 45%),
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(255, 255, 255, 0.015) 2px,
+          rgba(255, 255, 255, 0.015) 4px
+        );
+      pointer-events: none;
+    }
+
+    .history-scene-content {
+      position: relative;
+      z-index: 10;
+    }
+
+    .history-scene-bg img {
+      position: absolute;
+      inset: -8%;
+      width: 116%;
+      height: 116%;
+      object-fit: cover;
+      will-change: transform;
+    }
+
+    /* ── Hero: animated scene (video substitute for MVP) ── */
+    .hero-bg-image {
+      animation: heroKenBurns 20s ease-in-out infinite alternate;
+    }
+
+    @keyframes heroKenBurns {
+      from { transform: scale(1); }
+      to { transform: scale(1.07); }
+    }
+
+    /* ── Gallery photos ── */
+    .gallery-photo {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .gallery-photo.visible:hover {
+      box-shadow: 0 12px 32px rgba(45, 45, 45, 0.15);
+    }
+
+    /* ── Media images ── */
+    .media-cover {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* ── Placeholder images ── */
+    .img-placeholder {
+      background: linear-gradient(135deg, #E9B94933 0%, #C6282811 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #2D2D2D88;
+      font-size: 0.875rem;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    /* ── Hero: load-time fade-in ── */
+    .hero-fade {
+      opacity: 0;
+      transform: translateY(24px);
+      animation: heroFadeIn 0.8s ease forwards;
+    }
+
+    .hero-fade-delay-1 { animation-delay: 0.15s; }
+    .hero-fade-delay-2 { animation-delay: 0.35s; }
+    .hero-fade-delay-3 { animation-delay: 0.55s; }
+    .hero-fade-delay-4 { animation-delay: 0.75s; }
+    .hero-fade-delay-5 { animation-delay: 1s; }
+
+    @keyframes heroFadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── Hero: scroll indicator ── */
+    .scroll-indicator {
+      opacity: 0;
+      animation: heroFadeIn 0.8s ease 1s forwards, scrollBounce 2s ease-in-out 1.8s infinite;
+    }
+
+    @keyframes scrollBounce {
+      0%, 100% { transform: translateY(0); opacity: 1; }
+      50% { transform: translateY(8px); opacity: 0.6; }
+    }
+
+    /* ── Header over dark hero ── */
+    #site-header:not(.scrolled) .header-logo {
+      color: #FAF8F3;
+    }
+
+    #site-header:not(.scrolled) .header-logo span {
+      color: inherit;
+    }
+
+    #site-header:not(.scrolled) .header-nav-afisha {
+      color: #FAF8F3;
+      border: 1px solid #E9B949;
+      border-radius: 9999px;
+    }
+
+    #site-header:not(.scrolled) .header-nav-afisha:hover {
+      background-color: rgba(233, 185, 73, 0.15);
+      color: #E9B949;
+    }
+
+    #site-header.scrolled .header-nav-afisha {
+      border: 1px solid transparent;
+    }
+
+    /* ── Hero: curtain & spotlight ── */
+    .hero-curtain-left,
+    .hero-curtain-right {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: min(18vw, 120px);
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .hero-curtain-left {
+      left: 0;
+      background: linear-gradient(to right, rgba(26, 26, 26, 0.85), transparent);
+    }
+
+    .hero-curtain-right {
+      right: 0;
+      background: linear-gradient(to left, rgba(26, 26, 26, 0.85), transparent);
+    }
+
+    .hero-spotlight {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      background: radial-gradient(ellipse 55% 45% at 50% 38%, rgba(233, 185, 73, 0.18) 0%, transparent 65%);
+      animation: spotlightPulse 7s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes spotlightPulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* ── History transitions ── */
+    .history-divider {
+      position: relative;
+      z-index: 20;
+      background: #1A1A1A;
+    }
+
+    .history-intro {
+      background: linear-gradient(to bottom, #FAF8F3, #F5F0E8);
+    }
+
+    /* ── Section lead text ── */
+    .section-lead {
+      max-width: 36rem;
+    }
+
+    /* ── Staggered fade-up delays ── */
+    [data-stagger] .fade-up.visible:nth-child(1) { transition-delay: 0ms; }
+    [data-stagger] .fade-up.visible:nth-child(2) { transition-delay: 120ms; }
+    [data-stagger] .fade-up.visible:nth-child(3) { transition-delay: 240ms; }
+    [data-stagger] .fade-up.visible:nth-child(4) { transition-delay: 360ms; }
+    [data-stagger] .fade-up.visible:nth-child(5) { transition-delay: 480ms; }
+    [data-stagger] .fade-up.visible:nth-child(6) { transition-delay: 600ms; }
+  </style>
+</head>
+<body class="bg-milk text-graphite antialiased">
+
+  <!-- ═══════════════════════════════════════
+       STICKY HEADER
+  ═══════════════════════════════════════ -->
+  <header
+    id="site-header"
+    class="fixed top-0 left-0 right-0 z-50 bg-transparent"
+  >
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16 md:h-20">
+      <a href="#hero" class="header-logo flex flex-col leading-tight transition-colors">
+        <span class="font-display text-lg md:text-xl font-bold tracking-tight">Московский цирк</span>
+        <span class="hidden sm:block text-[10px] md:text-xs font-['Inter'] opacity-70 font-normal tracking-wide">на Цветном бульваре</span>
+      </a>
+      <nav class="flex items-center gap-3 md:gap-4">
+        <a
+          href="#shows"
+          class="header-nav-afisha px-4 py-2 text-sm md:text-base font-medium text-graphite hover:text-accent transition-colors"
+        >
+          Афиша
+        </a>
+        <a
+          href="#tickets"
+          class="header-nav-tickets px-4 py-2 text-sm md:text-base font-semibold bg-accent text-white rounded-full hover:bg-accent/90 transition-colors"
+        >
+          Билеты
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ═══════════════════════════════════════
+         1. HERO (full-width)
+    ═══════════════════════════════════════ -->
+    <section
+      id="hero"
+      class="relative w-full h-screen min-h-[600px] flex items-center justify-center overflow-hidden"
+    >
+      <!-- Background -->
+      <div class="absolute inset-0 bg-gradient-to-b from-[#2D2D2D] to-[#1A1A1A]">
+        <div
+          class="hero-bg-image absolute inset-0 opacity-35 bg-cover bg-center bg-no-repeat"
+          style="background-image: url('images/hero-exterior.webp');"
+          role="img"
+          aria-label="Цирк на Цветном бульваре"
+        ></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-transparent to-[#2D2D2D]/80"></div>
+        <div class="hero-spotlight"></div>
+        <div class="hero-curtain-left"></div>
+        <div class="hero-curtain-right"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[80%] rounded-full bg-gold/[0.04] blur-3xl pointer-events-none"></div>
+      </div>
+
+      <!-- Content -->
+      <div class="relative z-10 text-center px-4 sm:px-6 max-w-4xl mx-auto">
+        <h1 class="mb-6 md:mb-8">
+          <span
+            class="hero-fade hero-fade-delay-1 block font-['Manrope'] text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-milk tracking-tight leading-tight"
+          >
+            Под куполом
+          </span>
+          <span
+            class="hero-fade hero-fade-delay-2 block font-display italic text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl text-gold leading-none mt-1 md:mt-2"
+          >
+            времени
+          </span>
+        </h1>
+
+        <p
+          class="hero-fade hero-fade-delay-3 font-['Inter'] text-base sm:text-lg md:text-xl text-milk/80 max-w-xl mx-auto mb-10 md:mb-12 leading-relaxed"
+        >
+          Легендарный цирк Москвы сквозь эпохи
+        </p>
+
+        <div class="hero-fade hero-fade-delay-4 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
+          <a
+            href="#shows"
+            class="w-full sm:w-auto px-8 py-3.5 text-base font-semibold text-gold border-2 border-gold rounded-full hover:bg-gold/10 transition-colors duration-300"
+          >
+            Афиша
+          </a>
+          <a
+            href="#tickets"
+            class="w-full sm:w-auto px-8 py-3.5 text-base font-semibold text-white bg-accent rounded-full hover:bg-accent/90 transition-colors duration-300 shadow-lg shadow-accent/25"
+          >
+            Купить билет
+          </a>
+        </div>
+      </div>
+
+      <!-- Scroll indicator -->
+      <a
+        href="#shows"
+        class="scroll-indicator absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-milk/50 hover:text-gold transition-colors"
+        aria-label="Прокрутить вниз"
+      >
+        <span class="text-xs tracking-widest uppercase font-medium">Листайте</span>
+        <span class="block w-px h-10 bg-gradient-to-b from-gold/80 to-transparent rounded-full"></span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gold/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </a>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         2. ТЕКУЩИЕ ПРЕДСТАВЛЕНИЯ
+    ═══════════════════════════════════════ -->
+    <section id="shows" class="py-16 md:py-24">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <h2 class="fade-up font-['Manrope'] text-[32px] font-bold text-graphite mb-3">
+          Сегодня на манеже
+        </h2>
+        <p class="fade-up section-lead font-['Inter'] text-graphite/60 text-base mb-10 md:mb-12">
+          Актуальные программы сезона — афиша всегда под рукой
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8" data-stagger>
+          <!-- Card 1 -->
+          <article class="fade-up bg-white rounded-xl shadow-md shadow-graphite/5 hover:shadow-lg hover:shadow-graphite/10 transition-shadow duration-300 overflow-hidden flex flex-col">
+            <div class="aspect-[3/4] bg-gray-200 overflow-hidden">
+              <img src="images/show-1.jpg" alt="Афиша «Сны на опилках»" class="media-cover" loading="lazy">
+            </div>
+            <div class="p-5 md:p-6 flex flex-col flex-1">
+              <h3 class="font-['Manrope'] text-xl md:text-2xl font-bold text-graphite mb-2">
+                Сны на опилках
+              </h3>
+              <p class="text-gold font-semibold text-sm mb-3">15–30 марта</p>
+              <p class="font-['Inter'] text-graphite/70 text-sm mb-5 truncate">
+                Фантастическое путешествие сквозь сны
+              </p>
+              <button
+                type="button"
+                data-show
+                data-show-title="Сны на опилках"
+                data-show-dates="15–30 марта"
+                data-show-poster="images/show-1.jpg"
+                data-show-text="Фантастическое путешествие сквозь сны. Акробаты, иллюзионисты и артисты воздушной гимнастики проведут зрителей через мир грёз — от сказочных лесов до звёздного неба под куполом. Продолжительность 2 часа 20 минут с антрактом."
+                class="mt-auto w-full py-2.5 text-sm font-semibold text-gold border-2 border-gold rounded-full hover:bg-gold/10 transition-colors duration-300"
+              >
+                Подробнее
+              </button>
+            </div>
+          </article>
+
+          <!-- Card 2 -->
+          <article class="fade-up bg-white rounded-xl shadow-md shadow-graphite/5 hover:shadow-lg hover:shadow-graphite/10 transition-shadow duration-300 overflow-hidden flex flex-col">
+            <div class="aspect-[3/4] bg-gray-200 overflow-hidden">
+              <img src="images/show-2.jpg" alt="Афиша «Легенды арены»" class="media-cover" loading="lazy">
+            </div>
+            <div class="p-5 md:p-6 flex flex-col flex-1">
+              <h3 class="font-['Manrope'] text-xl md:text-2xl font-bold text-graphite mb-2">
+                Легенды арены
+              </h3>
+              <p class="text-gold font-semibold text-sm mb-3">5–20 апреля</p>
+              <p class="font-['Inter'] text-graphite/70 text-sm mb-5 truncate">
+                Юбилейное шоу прославленных династий
+              </p>
+              <button
+                type="button"
+                data-show
+                data-show-title="Легенды арены"
+                data-show-dates="5–20 апреля"
+                data-show-poster="images/show-2.jpg"
+                data-show-text="Юбилейное шоу прославленных династий. На манеже — лучшие артисты российского цирка: акробаты, гимнасты, равновесники, дрессировщики и воздушные гимнасты. Программа посвящена великим традициям отечественного циркового искусства."
+                class="mt-auto w-full py-2.5 text-sm font-semibold text-gold border-2 border-gold rounded-full hover:bg-gold/10 transition-colors duration-300"
+              >
+                Подробнее
+              </button>
+            </div>
+          </article>
+
+          <!-- Card 3 -->
+          <article class="fade-up bg-white rounded-xl shadow-md shadow-graphite/5 hover:shadow-lg hover:shadow-graphite/10 transition-shadow duration-300 overflow-hidden flex flex-col">
+            <div class="aspect-[3/4] bg-gray-200 overflow-hidden">
+              <img src="images/show-3.jpg" alt="Афиша «Магия под куполом»" class="media-cover" loading="lazy">
+            </div>
+            <div class="p-5 md:p-6 flex flex-col flex-1">
+              <h3 class="font-['Manrope'] text-xl md:text-2xl font-bold text-graphite mb-2">
+                Магия под куполом
+              </h3>
+              <p class="text-gold font-semibold text-sm mb-3">25 апр – 10 мая</p>
+              <p class="font-['Inter'] text-graphite/70 text-sm mb-5 truncate">
+                Иллюзии и воздушная гимнастика
+              </p>
+              <button
+                type="button"
+                data-show
+                data-show-title="Магия под куполом"
+                data-show-dates="25 апр – 10 мая"
+                data-show-poster="images/show-3.jpg"
+                data-show-text="Иллюзии и воздушная гимнастика в новой программе сезона. Дрессированные животные, головокружительные трюки на арене и номера, которые кажутся невозможными. Идеальное представление для всей семьи — дети до 6 лет бесплатно."
+                class="mt-auto w-full py-2.5 text-sm font-semibold text-gold border-2 border-gold rounded-full hover:bg-gold/10 transition-colors duration-300"
+              >
+                Подробнее
+              </button>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         3. БЛИЖАЙШИЕ ДАТЫ
+    ═══════════════════════════════════════ -->
+    <section id="schedule" class="py-16 md:py-24">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <h2 class="fade-up font-['Manrope'] text-[32px] font-bold text-graphite mb-3">
+          Ближайшие даты
+        </h2>
+        <p class="fade-up section-lead font-['Inter'] text-graphite/60 text-base mb-8 md:mb-10">
+          Упрощённое расписание — горизонтальный таймлайн ближайших мероприятий
+        </p>
+
+        <div class="relative flex items-center gap-3 md:gap-4">
+          <!-- Arrow left -->
+          <button
+            id="schedule-prev"
+            type="button"
+            class="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full border border-graphite/15 text-graphite/60 hover:text-graphite hover:border-gold hover:bg-gold/5 transition-colors"
+            aria-label="Прокрутить назад"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+
+          <!-- Scroll container -->
+          <div
+            id="schedule-scroll"
+            class="horizontal-scroll flex space-x-4 overflow-x-auto scroll-smooth py-2 -my-2 flex-1 min-w-0"
+          >
+            <!-- Card 1 — nearest date (highlighted) -->
+            <article class="schedule-card fade-up flex-shrink-0 w-[140px] p-4 rounded-xl border bg-[rgba(233,185,73,0.1)] border-accent text-center">
+              <p class="font-['Manrope'] text-2xl font-bold text-graphite leading-tight">15 мар</p>
+              <p class="text-xs text-graphite/50 mt-1 mb-3">среда</p>
+              <p class="font-['Manrope'] text-sm font-semibold text-graphite">Сны</p>
+            </article>
+
+            <!-- Card 2 -->
+            <article class="schedule-card fade-up flex-shrink-0 w-[140px] p-4 rounded-xl border border-gold bg-milk text-center">
+              <p class="font-['Manrope'] text-2xl font-bold text-graphite leading-tight">17 мар</p>
+              <p class="text-xs text-graphite/50 mt-1 mb-3">пятница</p>
+              <p class="font-['Manrope'] text-sm font-semibold text-graphite">Сны</p>
+            </article>
+
+            <!-- Card 3 -->
+            <article class="schedule-card fade-up flex-shrink-0 w-[140px] p-4 rounded-xl border border-gold bg-milk text-center">
+              <p class="font-['Manrope'] text-2xl font-bold text-graphite leading-tight">20 мар</p>
+              <p class="text-xs text-graphite/50 mt-1 mb-3">понедельник</p>
+              <p class="font-['Manrope'] text-sm font-semibold text-graphite">Сны</p>
+            </article>
+
+            <!-- Card 4 -->
+            <article class="schedule-card fade-up flex-shrink-0 w-[140px] p-4 rounded-xl border border-gold bg-milk text-center">
+              <p class="font-['Manrope'] text-2xl font-bold text-graphite leading-tight">5 апр</p>
+              <p class="text-xs text-graphite/50 mt-1 mb-3">среда</p>
+              <p class="font-['Manrope'] text-sm font-semibold text-graphite">Легенды</p>
+            </article>
+
+            <!-- Card 5 -->
+            <article class="schedule-card fade-up flex-shrink-0 w-[140px] p-4 rounded-xl border border-gold bg-milk text-center">
+              <p class="font-['Manrope'] text-2xl font-bold text-graphite leading-tight">10 апр</p>
+              <p class="text-xs text-graphite/50 mt-1 mb-3">понедельник</p>
+              <p class="font-['Manrope'] text-sm font-semibold text-graphite">Легенды</p>
+            </article>
+
+            <!-- Card 6 -->
+            <article class="schedule-card fade-up flex-shrink-0 w-[140px] p-4 rounded-xl border border-gold bg-milk text-center">
+              <p class="font-['Manrope'] text-2xl font-bold text-graphite leading-tight">25 апр</p>
+              <p class="text-xs text-graphite/50 mt-1 mb-3">вторник</p>
+              <p class="font-['Manrope'] text-sm font-semibold text-graphite">Магия</p>
+            </article>
+          </div>
+
+          <!-- Arrow right -->
+          <button
+            id="schedule-next"
+            type="button"
+            class="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full border border-graphite/15 text-graphite/60 hover:text-graphite hover:border-gold hover:bg-gold/5 transition-colors"
+            aria-label="Прокрутить вперёд"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         4. ИСТОРИЯ ЦИРКА (full-width)
+    ═══════════════════════════════════════ -->
+    <section id="history" class="relative w-full">
+
+      <!-- Section intro -->
+      <div class="history-intro py-16 md:py-20 text-center px-4 sm:px-6">
+        <h2 class="fade-up font-['Manrope'] text-[32px] font-bold text-graphite mb-3">
+          История цирка
+        </h2>
+        <p class="fade-up section-lead mx-auto font-['Inter'] text-graphite/60 text-base">
+          Путешествие сквозь эпохи — от первого камня до наших дней
+        </p>
+      </div>
+
+      <!-- Scene 1 -->
+      <article class="history-scene relative w-full min-h-[80vh] py-20 md:py-28 overflow-hidden flex items-center">
+        <div class="history-scene-bg absolute inset-0">
+          <img src="images/backstage-3.jpg" alt="" loading="lazy" aria-hidden="true">
+          <div class="absolute inset-0 bg-[#1A1A1A]/85"></div>
+        </div>
+        <div class="history-scene-content text-center px-4 sm:px-6 max-w-2xl mx-auto w-full">
+          <p class="fade-up font-display text-6xl sm:text-7xl md:text-8xl lg:text-[7rem] font-bold text-gold leading-none tracking-tight">
+            1880
+          </p>
+          <p class="fade-up font-['Inter'] text-lg sm:text-xl text-milk/90 mt-6 leading-relaxed">
+            Появление цирка
+          </p>
+          <p class="fade-up font-['Inter'] text-sm sm:text-base text-milk/60 mt-4 leading-relaxed">
+            Первый камень. Братья Никитины открывают двери стационарного цирка в Москве.
+          </p>
+        </div>
+      </article>
+
+      <div class="history-divider py-4 flex justify-center" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gold/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </div>
+
+      <!-- Scene 2 -->
+      <article class="history-scene relative w-full min-h-[80vh] py-20 md:py-28 overflow-hidden flex items-center">
+        <div class="history-scene-bg absolute inset-0">
+          <img src="images/gallery-3.jfif" alt="" loading="lazy" aria-hidden="true">
+          <div class="absolute inset-0 bg-[#1F1F1F]/85"></div>
+        </div>
+        <div class="history-scene-content text-center px-4 sm:px-6 max-w-2xl mx-auto w-full">
+          <p class="fade-up font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gold leading-tight tracking-tight">
+            Начало XX века
+          </p>
+          <p class="fade-up font-['Inter'] text-lg sm:text-xl text-milk/90 mt-6 leading-relaxed">
+            Блеск и слава дореволюционной Москвы
+          </p>
+          <p class="fade-up font-['Inter'] text-sm sm:text-base text-milk/60 mt-4 leading-relaxed">
+            Гастроли европейских знаменитостей и золотой век московского манежа.
+          </p>
+        </div>
+      </article>
+
+      <div class="history-divider py-4 flex justify-center" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gold/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </div>
+
+      <!-- Scene 3 -->
+      <article class="history-scene relative w-full min-h-[80vh] py-20 md:py-28 overflow-hidden flex items-center">
+        <div class="history-scene-bg absolute inset-0">
+          <img src="images/backstage-1.jpg" alt="" loading="lazy" aria-hidden="true" class="object-top">
+          <div class="absolute inset-0 bg-[#1A1A22]/85"></div>
+        </div>
+        <div class="history-scene-content text-center px-4 sm:px-6 max-w-2xl mx-auto w-full">
+          <p class="fade-up font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gold leading-tight tracking-tight">
+            Советская эпоха
+          </p>
+          <p class="fade-up font-['Inter'] text-lg sm:text-xl text-milk/90 mt-6 leading-relaxed">
+            «Университет смелости»
+          </p>
+          <p class="fade-up font-['Inter'] text-sm sm:text-base text-milk/60 mt-4 leading-relaxed">
+            Династии, рекорды и миллионы зрителей под куполом.
+          </p>
+        </div>
+      </article>
+
+      <div class="history-divider py-4 flex justify-center" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gold/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </div>
+
+      <!-- Scene 4 -->
+      <article class="history-scene relative w-full min-h-[80vh] py-20 md:py-28 overflow-hidden flex items-center">
+        <div class="history-scene-bg absolute inset-0">
+          <img src="images/legend-nikulin.jpg" alt="" loading="lazy" aria-hidden="true" class="object-[center_20%]">
+          <div class="absolute inset-0 bg-[#221A1A]/88"></div>
+        </div>
+        <div class="history-scene-content text-center px-4 sm:px-6 max-w-2xl mx-auto w-full">
+          <p class="fade-up font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gold leading-tight tracking-tight">
+            Юрий Никулин
+          </p>
+          <p class="fade-up font-['Inter'] text-lg sm:text-xl text-milk/90 mt-6 leading-relaxed">
+            Главный клоун страны и душа цирка
+          </p>
+          <p class="fade-up font-['Inter'] text-sm sm:text-base text-milk/60 mt-4 leading-relaxed">
+            Директор с 1982 года — человек, который связал традиции с современностью.
+          </p>
+        </div>
+      </article>
+
+      <div class="history-divider py-4 flex justify-center" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gold/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </div>
+
+      <!-- Scene 5 -->
+      <article class="history-scene relative w-full min-h-[80vh] py-20 md:py-28 overflow-hidden flex items-center">
+        <div class="history-scene-bg absolute inset-0">
+          <img src="images/hero-exterior.webp" alt="" loading="lazy" aria-hidden="true">
+          <div class="absolute inset-0 bg-[#1A1A18]/82"></div>
+        </div>
+        <div class="history-scene-content text-center px-4 sm:px-6 max-w-2xl mx-auto w-full">
+          <p class="fade-up font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gold leading-tight tracking-tight">
+            Наши дни
+          </p>
+          <p class="fade-up font-['Inter'] text-lg sm:text-xl text-milk/90 mt-6 leading-relaxed">
+            Традиции и новаторство под одним куполом
+          </p>
+          <p class="fade-up font-['Inter'] text-sm sm:text-base text-milk/60 mt-4 leading-relaxed">
+            Премьеры, фестивали и представления, которые собирают полные залы на Цветном бульваре.
+          </p>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         5. ГАЛЕРЕЯ ЭПОХ
+    ═══════════════════════════════════════ -->
+    <section id="gallery" class="py-16 md:py-24">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <h2 class="fade-up font-['Manrope'] text-[32px] font-bold text-graphite mb-3">
+          Галерея эпох
+        </h2>
+        <p class="fade-up section-lead font-['Inter'] text-graphite/60 text-base mb-10 md:mb-12">
+          Архивные афиши и редкие снимки — исследуйте историю при скролле
+        </p>
+
+        <div class="flex flex-col">
+          <!-- Photo 1 -->
+          <figure class="mb-10 last:mb-0">
+            <div class="gallery-photo fade-up aspect-video w-full bg-gray-200 rounded-xl overflow-hidden">
+              <img src="images/backstage-3.jpg" alt="Афиша цирка Чинизелли, 1880-е" class="media-cover object-top" loading="lazy">
+            </div>
+            <figcaption class="mt-3 font-['Inter'] text-sm md:text-base text-graphite/70">
+              Афиша, 1880
+            </figcaption>
+          </figure>
+
+          <!-- Photo 2 -->
+          <figure class="mb-10 last:mb-0">
+            <div class="gallery-photo fade-up aspect-[4/3] w-full bg-gray-200 rounded-xl overflow-hidden">
+              <img src="images/gallery-1.png" alt="Строительство арены цирка" class="media-cover" loading="lazy">
+            </div>
+            <figcaption class="mt-3 font-['Inter'] text-sm md:text-base text-graphite/70">
+              За кулисами, 1910-е
+            </figcaption>
+          </figure>
+
+          <!-- Photo 3 -->
+          <figure class="mb-10 last:mb-0">
+            <div class="gallery-photo fade-up aspect-video w-full bg-gray-200 rounded-xl overflow-hidden">
+              <img src="images/backstage-1.jpg" alt="Советский цирковой плакат" class="media-cover object-top" loading="lazy">
+            </div>
+            <figcaption class="mt-3 font-['Inter'] text-sm md:text-base text-graphite/70">
+              Советский плакат, 1930-е
+            </figcaption>
+          </figure>
+
+          <!-- Photo 4 -->
+          <figure class="mb-10 last:mb-0">
+            <div class="gallery-photo fade-up aspect-[4/3] w-full bg-gray-200 rounded-xl overflow-hidden">
+              <img src="images/gallery-4.jpg" alt="Зал цирка, вид сверху" class="media-cover" loading="lazy">
+            </div>
+            <figcaption class="mt-3 font-['Inter'] text-sm md:text-base text-graphite/70">
+              Зал цирка, 1960-е
+            </figcaption>
+          </figure>
+
+          <!-- Photo 5 -->
+          <figure class="mb-10 last:mb-0">
+            <div class="gallery-photo fade-up aspect-video w-full bg-gray-200 rounded-xl overflow-hidden">
+              <img src="images/gallery-2.jpeg" alt="Репетиция представления «Матрёшка»" class="media-cover" loading="lazy">
+            </div>
+            <figcaption class="mt-3 font-['Inter'] text-sm md:text-base text-graphite/70">
+              Редкое фото репетиции, 1980
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         6. ЗА КУЛИСАМИ
+    ═══════════════════════════════════════ -->
+    <section id="backstage" class="py-16 md:py-24">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <h2 class="fade-up font-['Manrope'] text-[32px] font-bold text-graphite mb-3">
+          За кулисами
+        </h2>
+        <p class="fade-up section-lead font-['Inter'] text-graphite/60 text-base mb-10 md:mb-12">
+          Артисты, репетиции, костюмы и подготовка к представлению
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 md:gap-6" data-stagger>
+          <!-- Card 1 — Артисты -->
+          <button
+            type="button"
+            data-demo
+            data-demo-title="Демо-режим"
+            data-demo-message="Демо-режим: полноэкранный просмотр фото будет доступен позже"
+            class="fade-up group w-full text-left cursor-pointer"
+          >
+            <div class="aspect-square bg-gray-200 rounded-xl overflow-hidden transition-transform duration-300 group-hover:scale-[1.02] group-hover:shadow-md">
+              <img src="images/backstage-3.webp" alt="Артисты" class="media-cover" loading="lazy">
+            </div>
+            <p class="mt-3 font-['Inter'] text-sm md:text-base text-graphite/70">Артисты</p>
+          </button>
+
+          <!-- Card 2 — Репетиция -->
+          <button
+            type="button"
+            data-demo
+            data-demo-title="Демо-режим"
+            data-demo-message="Демо-режим: полноэкранный просмотр фото будет доступен позже"
+            class="fade-up group w-full text-left cursor-pointer"
+          >
+            <div class="aspect-square bg-gray-200 rounded-xl overflow-hidden transition-transform duration-300 group-hover:scale-[1.02] group-hover:shadow-md">
+              <img src="images/backstage-1.webp" alt="Репетиция" class="media-cover" loading="lazy">
+            </div>
+            <p class="mt-3 font-['Inter'] text-sm md:text-base text-graphite/70">Репетиция</p>
+          </button>
+
+          <!-- Card 3 — Костюмы -->
+          <button
+            type="button"
+            data-demo
+            data-demo-title="Демо-режим"
+            data-demo-message="Демо-режим: полноэкранный просмотр фото будет доступен позже"
+            class="fade-up group w-full text-left cursor-pointer"
+          >
+            <div class="aspect-square bg-gray-200 rounded-xl overflow-hidden transition-transform duration-300 group-hover:scale-[1.02] group-hover:shadow-md">
+              <img src="images/backstage-2.webp" alt="Костюмерная" class="media-cover" loading="lazy">
+            </div>
+            <p class="mt-3 font-['Inter'] text-sm md:text-base text-graphite/70">Костюмы</p>
+          </button>
+
+          <!-- Card 4 — Подготовка к выходу -->
+          <button
+            type="button"
+            data-demo
+            data-demo-title="Демо-режим"
+            data-demo-message="Демо-режим: полноэкранный просмотр фото будет доступен позже"
+            class="fade-up group w-full text-left cursor-pointer"
+          >
+            <div class="aspect-square bg-gray-200 rounded-xl overflow-hidden transition-transform duration-300 group-hover:scale-[1.02] group-hover:shadow-md">
+              <img src="images/backstage-4.webp" alt="Подготовка к выходу" class="media-cover" loading="lazy">
+            </div>
+            <p class="mt-3 font-['Inter'] text-sm md:text-base text-graphite/70">Подготовка к выходу</p>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         7. ЛЕГЕНДЫ ЦИРКА
+    ═══════════════════════════════════════ -->
+    <section id="legends" class="py-16 md:py-24">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <h2 class="fade-up font-['Manrope'] text-[32px] font-bold text-graphite mb-3">
+          Легенды цирка
+        </h2>
+        <p class="fade-up section-lead font-['Inter'] text-graphite/60 text-base mb-10 md:mb-12">
+          Имена, которые навсегда связаны с манежем
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 items-start" data-stagger>
+          <!-- Legend 1 -->
+          <article class="legend-card fade-up group text-center p-4 rounded-xl transition-colors duration-300 md:hover:bg-white/60">
+            <div class="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-full bg-gray-200 overflow-hidden">
+              <img src="images/legend-nikulin.jpg" alt="Юрий Никулин" class="media-cover object-[center_20%]" loading="lazy">
+            </div>
+            <h3 class="font-['Manrope'] text-base md:text-lg font-bold text-graphite mt-4 leading-tight">
+              Юрий Никулин
+            </h3>
+            <p class="text-gold text-xs md:text-sm mt-1">Клоун, актёр</p>
+            <p class="legend-fact text-xs md:text-sm text-graphite/60 mt-3 leading-relaxed transition-opacity duration-300 md:opacity-0 md:group-hover:opacity-100">
+              Главный клоун страны, директор цирка на Цветном бульваре
+            </p>
+          </article>
+
+          <!-- Legend 2 -->
+          <article class="legend-card fade-up group text-center p-4 rounded-xl transition-colors duration-300 md:hover:bg-white/60">
+            <div class="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-full bg-gray-200 overflow-hidden">
+              <img src="images/legend-popov.webp" alt="Олег Попов" class="media-cover object-[center_15%]" loading="lazy">
+            </div>
+            <h3 class="font-['Manrope'] text-base md:text-lg font-bold text-graphite mt-4 leading-tight">
+              Олег Попов
+            </h3>
+            <p class="text-gold text-xs md:text-sm mt-1">Клоун, мим</p>
+            <p class="legend-fact text-xs md:text-sm text-graphite/60 mt-3 leading-relaxed transition-opacity duration-300 md:opacity-0 md:group-hover:opacity-100">
+              Солнечный клоун, покоривший мир
+            </p>
+          </article>
+
+          <!-- Legend 3 -->
+          <article class="legend-card fade-up group text-center p-4 rounded-xl transition-colors duration-300 md:hover:bg-white/60">
+            <div class="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-full bg-gray-200 overflow-hidden">
+              <img src="images/legend-bugrimova.jpg" alt="Ирина Бугримова" class="media-cover object-top" loading="lazy">
+            </div>
+            <h3 class="font-['Manrope'] text-base md:text-lg font-bold text-graphite mt-4 leading-tight">
+              Ирина Бугримова
+            </h3>
+            <p class="text-gold text-xs md:text-sm mt-1">Укротительница</p>
+            <p class="legend-fact text-xs md:text-sm text-graphite/60 mt-3 leading-relaxed transition-opacity duration-300 md:opacity-0 md:group-hover:opacity-100">
+              Первая женщина-укротительница тигров
+            </p>
+          </article>
+
+          <!-- Legend 4 -->
+          <article class="legend-card fade-up group text-center p-4 rounded-xl transition-colors duration-300 md:hover:bg-white/60">
+            <div class="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-full bg-gray-200 overflow-hidden">
+              <img src="images/legend-zapashnye.jpg" alt="Братья Запашные" class="media-cover object-top" loading="lazy">
+            </div>
+            <h3 class="font-['Manrope'] text-base md:text-lg font-bold text-graphite mt-4 leading-tight">
+              Братья Запашные
+            </h3>
+            <p class="text-gold text-xs md:text-sm mt-1">Дрессировщики</p>
+            <p class="legend-fact text-xs md:text-sm text-graphite/60 mt-3 leading-relaxed transition-opacity duration-300 md:opacity-0 md:group-hover:opacity-100">
+              Наследники знаменитой династии, современные мастера
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         8. БИЛЕТЫ (демо)
+    ═══════════════════════════════════════ -->
+    <section id="tickets" class="py-16 md:py-24">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <h2 class="fade-up font-['Manrope'] text-[32px] font-bold text-graphite mb-3">
+          Выбор мест
+        </h2>
+        <p class="fade-up section-lead font-['Inter'] text-graphite/60 text-base mb-10 md:mb-12">
+          Демонстрационный блок — схема зала и категории мест
+        </p>
+
+        <div class="fade-up">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
+            <!-- Left: hall schema -->
+            <div class="h-[300px] bg-gray-200 rounded-xl overflow-hidden">
+              <img src="images/gallery-3.jfif" alt="Схема зала цирка" class="media-cover" loading="lazy">
+            </div>
+
+            <!-- Right: seat categories -->
+            <div class="flex flex-col">
+              <ul class="space-y-4 flex-1">
+                <li class="flex items-center justify-between gap-4 py-3 border-b border-graphite/10">
+                  <span class="flex items-center gap-3 font-['Inter'] text-graphite">
+                    <span class="w-2 h-2 rounded-full bg-gold flex-shrink-0"></span>
+                    Партер (1–10 ряд)
+                  </span>
+                  <span class="font-['Manrope'] font-semibold text-graphite whitespace-nowrap">5000 ₽</span>
+                </li>
+                <li class="flex items-center justify-between gap-4 py-3 border-b border-graphite/10">
+                  <span class="flex items-center gap-3 font-['Inter'] text-graphite">
+                    <span class="w-2 h-2 rounded-full bg-gold flex-shrink-0"></span>
+                    Амфитеатр
+                  </span>
+                  <span class="font-['Manrope'] font-semibold text-graphite whitespace-nowrap">3500 ₽</span>
+                </li>
+                <li class="flex items-center justify-between gap-4 py-3 border-b border-graphite/10">
+                  <span class="flex items-center gap-3 font-['Inter'] text-graphite">
+                    <span class="w-2 h-2 rounded-full bg-gold flex-shrink-0"></span>
+                    Бельэтаж
+                  </span>
+                  <span class="font-['Manrope'] font-semibold text-graphite whitespace-nowrap">2500 ₽</span>
+                </li>
+                <li class="flex items-center justify-between gap-4 py-3 border-b border-graphite/10">
+                  <span class="flex items-center gap-3 font-['Inter'] text-graphite">
+                    <span class="w-2 h-2 rounded-full bg-gold flex-shrink-0"></span>
+                    Балкон
+                  </span>
+                  <span class="font-['Manrope'] font-semibold text-graphite whitespace-nowrap">1200 ₽</span>
+                </li>
+                <li class="flex items-center justify-between gap-4 py-3">
+                  <span class="flex items-center gap-3 font-['Inter'] text-graphite">
+                    <span class="w-2 h-2 rounded-full bg-gold flex-shrink-0"></span>
+                    Ложи (VIP)
+                  </span>
+                  <span class="font-['Manrope'] font-semibold text-graphite whitespace-nowrap">8000 ₽</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            data-demo
+            data-demo-title="Демо-версия"
+            data-demo-message="Демо-версия. В будущем вы сможете выбрать конкретные места и оплатить онлайн"
+            class="w-full mt-8 md:mt-10 py-4 text-base font-semibold text-white bg-accent rounded-xl hover:bg-accent/90 transition-colors duration-300 shadow-lg shadow-accent/20"
+          >
+            Купить билет
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         9. ФИНАЛЬНАЯ СЦЕНА
+    ═══════════════════════════════════════ -->
+    <section id="final" class="bg-milk min-h-[80vh] h-[80vh] flex items-center justify-center">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 w-full text-center">
+        <p class="fade-up font-display italic text-[2.5rem] sm:text-4xl md:text-5xl lg:text-6xl xl:text-[4rem] text-graphite leading-tight max-w-4xl mx-auto">
+          Более века люди приходят сюда за&nbsp;удивлением
+        </p>
+
+        <div class="fade-up flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5 mt-10 md:mt-12">
+          <a
+            href="#shows"
+            class="w-full sm:w-auto px-8 py-3.5 text-base font-semibold text-gold border-2 border-gold rounded-full hover:bg-gold/10 transition-colors duration-300"
+          >
+            Посмотреть афишу
+          </a>
+          <a
+            href="#tickets"
+            class="w-full sm:w-auto px-8 py-3.5 text-base font-semibold text-white bg-accent rounded-full hover:bg-accent/90 transition-colors duration-300 shadow-lg shadow-accent/25"
+          >
+            Купить билет
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════
+       FOOTER
+  ═══════════════════════════════════════ -->
+  <footer class="py-8 border-t border-graphite/10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 text-center text-sm text-graphite/60">
+      <p>&copy; 2026 Московский цирк на Цветном бульваре. MVP «Под куполом времени».</p>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════════
+       DEMO MODAL
+  ═══════════════════════════════════════ -->
+  <div
+    id="demo-modal"
+    class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+  >
+    <!-- Backdrop -->
+    <div id="modal-backdrop" class="absolute inset-0 bg-graphite/50 backdrop-blur-sm"></div>
+
+    <!-- Content -->
+    <div class="modal-content relative bg-milk rounded-2xl shadow-2xl max-w-md w-full p-8 text-center max-h-[90vh] overflow-y-auto">
+      <button
+        id="modal-close"
+        class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-graphite/50 hover:text-graphite transition-colors rounded-full hover:bg-graphite/5 z-10"
+        aria-label="Закрыть"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <div id="modal-icon" class="w-12 h-12 mx-auto mb-4 rounded-full bg-gold/20 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+
+      <img id="modal-poster" src="" alt="" class="hidden w-full max-w-[200px] mx-auto rounded-xl mb-4 shadow-md aspect-[3/4] object-cover">
+
+      <p id="modal-dates" class="hidden text-gold font-semibold text-sm mb-2 font-['Manrope']"></p>
+      <h3 id="modal-title" class="font-display text-xl font-semibold text-graphite mb-2">Демо-версия</h3>
+      <p id="modal-text" class="text-graphite/70 leading-relaxed text-sm md:text-base"></p>
+
+      <a
+        id="modal-tickets-btn"
+        href="#tickets"
+        class="hidden mt-6 w-full py-3 text-sm font-semibold text-white bg-accent rounded-full hover:bg-accent/90 transition-colors duration-300"
+      >
+        Купить билет
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT
+  ═══════════════════════════════════════ -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* ── Intersection Observer: fade-up animations ── */
+      const fadeObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              fadeObserver.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.15 }
+      );
+
+      document.querySelectorAll('[data-stagger]').forEach((container) => {
+        const staggerObserver = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                container.querySelectorAll(':scope > .fade-up').forEach((item) => {
+                  item.classList.add('visible');
+                });
+                staggerObserver.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.12 }
+        );
+        staggerObserver.observe(container);
+      });
+
+      document.querySelectorAll('.fade-up').forEach((el) => {
+        if (!el.closest('[data-stagger]')) {
+          fadeObserver.observe(el);
+        }
+      });
+
+      /* ── History: light parallax on scene backgrounds ── */
+      const historyImages = document.querySelectorAll('.history-scene-bg img');
+
+      function updateHistoryParallax() {
+        historyImages.forEach((img) => {
+          const scene = img.closest('.history-scene');
+          if (!scene) return;
+
+          const rect = scene.getBoundingClientRect();
+          const viewHeight = window.innerHeight;
+
+          if (rect.bottom < 0 || rect.top > viewHeight) return;
+
+          const progress = (viewHeight - rect.top) / (viewHeight + rect.height);
+          const offset = (progress - 0.5) * 36;
+          img.style.transform = `translate3d(0, ${offset}px, 0)`;
+        });
+      }
+
+      window.addEventListener('scroll', updateHistoryParallax, { passive: true });
+      updateHistoryParallax();
+
+      /* ── Sticky header: background on scroll ── */
+      const header = document.getElementById('site-header');
+      const hero = document.getElementById('hero');
+
+      function updateHeader() {
+        const heroBottom = hero ? hero.offsetTop + hero.offsetHeight : 100;
+        if (window.scrollY > 60) {
+          header.classList.add('scrolled');
+        } else {
+          header.classList.remove('scrolled');
+        }
+      }
+
+      window.addEventListener('scroll', updateHeader, { passive: true });
+      updateHeader();
+
+      /* ── Smooth scroll to anchors (offset for sticky header) ── */
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener('click', (e) => {
+          const targetId = anchor.getAttribute('href');
+          if (!targetId || targetId === '#') return;
+
+          const target = document.querySelector(targetId);
+          if (!target) return;
+
+          e.preventDefault();
+          const headerHeight = header.offsetHeight;
+          const top = target.getBoundingClientRect().top + window.scrollY - headerHeight;
+
+          window.scrollTo({ top, behavior: 'smooth' });
+        });
+      });
+
+      /* ── Demo & show modals ── */
+      const modal = document.getElementById('demo-modal');
+      const modalBackdrop = document.getElementById('modal-backdrop');
+      const modalClose = document.getElementById('modal-close');
+      const modalIcon = document.getElementById('modal-icon');
+      const modalPoster = document.getElementById('modal-poster');
+      const modalDates = document.getElementById('modal-dates');
+      const modalTitle = document.getElementById('modal-title');
+      const modalText = document.getElementById('modal-text');
+      const modalTicketsBtn = document.getElementById('modal-tickets-btn');
+      const defaultModalTitle = 'Демо-версия';
+      const defaultModalText = 'Это демо-версия. В будущем здесь будет полный функционал.';
+
+      function resetModal() {
+        modalIcon.classList.remove('hidden');
+        modalPoster.classList.add('hidden');
+        modalPoster.removeAttribute('src');
+        modalDates.classList.add('hidden');
+        modalDates.textContent = '';
+        modalTicketsBtn.classList.add('hidden');
+        modalTitle.textContent = defaultModalTitle;
+        modalText.textContent = defaultModalText;
+      }
+
+      function openModal(title, text) {
+        resetModal();
+        modalTitle.textContent = title || defaultModalTitle;
+        modalText.textContent = text || defaultModalText;
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function openShowModal(btn) {
+        resetModal();
+        modalIcon.classList.add('hidden');
+        modalPoster.src = btn.dataset.showPoster;
+        modalPoster.alt = btn.dataset.showTitle;
+        modalPoster.classList.remove('hidden');
+        modalDates.textContent = btn.dataset.showDates;
+        modalDates.classList.remove('hidden');
+        modalTitle.textContent = btn.dataset.showTitle;
+        modalText.textContent = btn.dataset.showText;
+        modalTicketsBtn.classList.remove('hidden');
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal() {
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+        resetModal();
+      }
+
+      modalClose.addEventListener('click', closeModal);
+      modalBackdrop.addEventListener('click', closeModal);
+
+      modalTicketsBtn.addEventListener('click', () => {
+        closeModal();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('open')) {
+          closeModal();
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        const showBtn = e.target.closest('[data-show]');
+        if (showBtn) {
+          e.preventDefault();
+          openShowModal(showBtn);
+          return;
+        }
+
+        const demoBtn = e.target.closest('[data-demo]');
+        if (demoBtn) {
+          e.preventDefault();
+          openModal(demoBtn.dataset.demoTitle, demoBtn.dataset.demoMessage);
+        }
+      });
+
+      /* ── Schedule: arrow scroll navigation ── */
+      const scheduleScroll = document.getElementById('schedule-scroll');
+      const schedulePrev = document.getElementById('schedule-prev');
+      const scheduleNext = document.getElementById('schedule-next');
+      const scheduleStep = 156;
+
+      if (scheduleScroll && schedulePrev && scheduleNext) {
+        schedulePrev.addEventListener('click', () => {
+          scheduleScroll.scrollBy({ left: -scheduleStep, behavior: 'smooth' });
+        });
+
+        scheduleNext.addEventListener('click', () => {
+          scheduleScroll.scrollBy({ left: scheduleStep, behavior: 'smooth' });
+        });
+      }
+
+    })();
+  </script>
+
+</body>
+</html>
